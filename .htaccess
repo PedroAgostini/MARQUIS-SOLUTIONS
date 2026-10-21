@@ -1,0 +1,113 @@
+# Marquis Solutions | Hostinger (Apache / LiteSpeed)
+# One file for both environments:
+#   production: marquissolutionsnj.com
+#   staging:    marquis.escolats.com.br (noindex + robots-staging.txt)
+
+Options -Indexes
+DirectoryIndex index.html
+ErrorDocument 404 /404.html
+
+# ---------------------------------------------------------------
+# Rewrites
+# ---------------------------------------------------------------
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Force HTTPS (also behind a proxy)
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !https
+  RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+  # Production: www -> apex (matches the canonical URL)
+  RewriteCond %{HTTP_HOST} ^www\.marquissolutionsnj\.com$ [NC]
+  RewriteRule ^ https://marquissolutionsnj.com%{REQUEST_URI} [L,R=301]
+
+  # Clean URLs: never show .html in the address bar
+  # /index.html (or /folder/index.html) -> /  (or /folder/)
+  RewriteCond %{THE_REQUEST} \s/+(.*?/)?index\.html[\s?] [NC]
+  RewriteRule ^ /%1 [L,R=301]
+
+  # /page.html -> /page
+  RewriteCond %{THE_REQUEST} \s/+(.+?)\.html[\s?] [NC]
+  RewriteRule ^ /%1 [L,R=301]
+
+  # /page -> serves page.html internally (only when that file exists)
+  RewriteCond %{REQUEST_FILENAME} !-d
+  RewriteCond %{REQUEST_FILENAME}.html -f
+  RewriteRule ^(.+)$ $1.html [L]
+
+  # Staging serves a robots file that blocks every crawler
+  RewriteCond %{HTTP_HOST} ^marquis\.escolats\.com\.br$ [NC]
+  RewriteRule ^robots\.txt$ robots-staging.txt [L]
+</IfModule>
+
+# ---------------------------------------------------------------
+# Keep private and working files off the web (answer 404)
+# ---------------------------------------------------------------
+<IfModule mod_alias.c>
+  RedirectMatch 404 /\.(?!well-known/)
+  RedirectMatch 404 ^/(logos|output|node_modules)(/|$)
+  RedirectMatch 404 \.(md|json|log|ini|sh|bak|sql|zip)$
+</IfModule>
+
+# ---------------------------------------------------------------
+# Headers
+# ---------------------------------------------------------------
+<IfModule mod_setenvif.c>
+  SetEnvIfNoCase Host ^marquis\.escolats\.com\.br$ IS_STAGING
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Staging must never be indexed
+  Header set X-Robots-Tag "noindex, nofollow" env=IS_STAGING
+
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+  Header always set Strict-Transport-Security "max-age=31536000" env=HTTPS
+
+  # HTML always revalidates so edits show up right away
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+
+# ---------------------------------------------------------------
+# MIME types
+# ---------------------------------------------------------------
+<IfModule mod_mime.c>
+  AddType image/webp .webp
+  AddType image/avif .avif
+  AddType image/svg+xml .svg
+  AddType font/woff2 .woff2
+  AddType application/javascript .js .mjs
+  AddCharset utf-8 .html .css .js .txt .xml
+</IfModule>
+
+# ---------------------------------------------------------------
+# Compression
+# ---------------------------------------------------------------
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml application/xml application/javascript application/json image/svg+xml
+</IfModule>
+
+# ---------------------------------------------------------------
+# Browser cache
+# CSS/JS have no hashed names, so they get a short life
+# ---------------------------------------------------------------
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresDefault                  "access plus 1 week"
+  ExpiresByType text/html         "access plus 0 seconds"
+  ExpiresByType text/css          "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType image/webp        "access plus 6 months"
+  ExpiresByType image/avif        "access plus 6 months"
+  ExpiresByType image/png         "access plus 6 months"
+  ExpiresByType image/jpeg        "access plus 6 months"
+  ExpiresByType image/svg+xml     "access plus 6 months"
+  ExpiresByType font/woff2        "access plus 1 year"
+  ExpiresByType text/plain        "access plus 1 day"
+  ExpiresByType application/xml   "access plus 1 day"
+</IfModule>

@@ -1,0 +1,4 @@
+# Staging (marquis.escolats.com.br): keep every crawler out.
+# .htaccess serves this file as /robots.txt on the staging host only.
+User-agent: *
+Disallow: /

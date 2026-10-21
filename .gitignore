@@ -1,0 +1,23 @@
+# Internal project documents (client-confidential, never public)
+PRODUCT.md
+DESIGN.md
+CHECKLIST-LANCAMENTO.md
+Briefing*.md
+ONE PAGE*.md
+
+# Design process, tooling and source files
+.impeccable/
+.tools/
+.claude/
+output/
+logos/
+node_modules/
+
+# Temporary browser profiles from screenshot runs
+chr-*/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
